@@ -367,21 +367,20 @@ st.sidebar.markdown("## Monitor Michoacán")
 st.sidebar.caption("Control de información")
 st.sidebar.markdown("---")
 
-page = st.sidebar.radio(
-    "Navegación",
-    [
-        "01 · Menú ejecutivo",
-        "02 · Mapa nominal",
-        "03 · Datos estatales",
-        "04 · Datos electorales",
-        "05 · Edad y género",
-        "06 · Histórico votaciones",
-        "07 · Encuestas",
-        "08 · Casillas",
-        "09 · Solicitudes",
-        "10 · Opinión programas sociales",
-    ],
-)
+PAGES = [
+    "01 · Menú ejecutivo",
+    "02 · Mapa nominal",
+    "03 · Datos estatales",
+    "04 · Datos electorales",
+    "05 · Edad y género",
+    "06 · Histórico votaciones",
+    "07 · Encuestas",
+    "08 · Casillas",
+    "09 · Solicitudes",
+    "10 · Opinión programas sociales",
+]
+
+page = st.sidebar.radio("Navegación", PAGES)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Filtros complementarios")
@@ -428,19 +427,90 @@ if estatus_filter and "Estatus" in solicitudes_view.columns:
     solicitudes_view = solicitudes_view[solicitudes_view["Estatus"].isin(estatus_filter)]
 
 st.sidebar.markdown("---")
-presentacion = st.sidebar.toggle("Modo presentación", value=False)
+# Modo presentación controlado desde sidebar.
+# Para salir se usa un botón con callback para evitar errores de session_state.
+if "presentacion_activa" not in st.session_state:
+    st.session_state["presentacion_activa"] = False
+
+def activar_presentacion():
+    st.session_state["presentacion_activa"] = True
+
+
+def salir_presentacion():
+    st.session_state["presentacion_activa"] = False
+
+presentacion_toggle = st.sidebar.toggle(
+    "Modo presentación",
+    value=st.session_state["presentacion_activa"],
+    on_change=lambda: st.session_state.update(
+        {"presentacion_activa": st.session_state.get("presentacion_toggle_widget", False)}
+    ),
+    key="presentacion_toggle_widget",
+)
+
+presentacion = st.session_state["presentacion_activa"]
+
 if presentacion:
     st.markdown(
         """
         <style>
+        /* Modo presentación real */
         section[data-testid="stSidebar"] {display:none !important;}
-        .block-container {padding-left:3rem; padding-right:3rem; max-width:1500px;}
-        .kpi-value {font-size:2.35rem !important;}
-        .topbar-title {font-size:1.7rem !important;}
+        div[data-testid="collapsedControl"] {display:none !important;}
+        header[data-testid="stHeader"] {display:none !important;}
+        [data-testid="stToolbar"] {display:none !important;}
+        [data-testid="stDecoration"] {display:none !important;}
+        #MainMenu {visibility:hidden;}
+        footer {visibility:hidden;}
+
+        .block-container {
+            padding-top:1.2rem;
+            padding-left:2.5rem;
+            padding-right:2.5rem;
+            padding-bottom:2rem;
+            max-width:100% !important;
+        }
+        .hero {
+            min-height:260px !important;
+            padding:3rem !important;
+        }
+        .hero h1 {font-size:3.45rem !important;}
+        .hero p {font-size:1.25rem !important;}
+        .kpi-card {
+            min-height:150px !important;
+            padding:1.55rem 1.35rem !important;
+        }
+        .kpi-value {font-size:2.8rem !important;}
+        .kpi-label {font-size:.85rem !important;}
+        .topbar-title {font-size:2rem !important;}
+        .topbar-subtitle {font-size:1rem !important;}
+        div[data-testid="stButton"] button {
+            background:#081B75 !important;
+            color:white !important;
+            border:1px solid #081B75 !important;
+            font-weight:800 !important;
+            border-radius:14px !important;
+        }
+        div[data-testid="stButton"] button p {
+            color:white !important;
+        }
         </style>
+
         """,
         unsafe_allow_html=True,
     )
+
+    nav_col, exit_col = st.columns([5, 1])
+    with nav_col:
+        page = st.selectbox(
+            "Navegación modo presentación",
+            PAGES,
+            index=PAGES.index(page) if page in PAGES else 0,
+            key="presentacion_page_selector",
+        )
+    with exit_col:
+        st.write("")
+        st.button("Salir", use_container_width=True, on_click=salir_presentacion)
 
 st.sidebar.caption("MAX VIDAL MOREIRA (MVM)")
 
@@ -883,7 +953,6 @@ elif page == "10 · Opinión programas sociales":
         st.plotly_chart(chart_layout(fig2, 500), use_container_width=True)
         st.dataframe(satisfaccion_df, use_container_width=True, hide_index=True)
     footer()
-
 
 
 
